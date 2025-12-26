@@ -1,0 +1,13 @@
+# Security: ห้ามเอา API Key ขึ้น GitHub
+.env
+
+# Dependencies: ห้ามเอาโฟลเดอร์ Library ขึ้น (มันหนักและรันใหม่ได้)
+node_modules/
+
+# Privacy: ห้ามเอาไฟล์บันทึกการคุยของนักศึกษาขึ้น
+logs.csv
+logs.txt
+
+# OS Files: ไฟล์ขยะของระบบปฏิบัติการ
+.DS_Store
+Thumbs.db

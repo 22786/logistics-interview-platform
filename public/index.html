@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics Interview Platform</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px; 
+            background-color: #f4f7f6;
+            max-width: 800px;
+            margin: auto;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 { color: #2c3e50; }
+        p.description { color: #7f8c8d; font-size: 0.9em; }
+
+        #chat-box { 
+            border: 1px solid #ddd; 
+            height: 400px; 
+            overflow-y: scroll; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            background-color: #fafafa;
+            border-radius: 5px;
+        }
+        .message { margin-bottom: 15px; }
+        .student-msg { color: #2980b9; font-weight: bold; }
+        .persona-msg { color: #27ae60; font-weight: bold; }
+
+        .input-area { display: flex; gap: 10px; }
+        input[type="text"] { 
+            flex-grow: 1; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            background-color: #2c3e50; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background-color: #34495e; }
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ddd; width: 100%; margin-bottom: 20px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Logistics Persona Interview</h2>
+    
+    <div style="background: #eef; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <label><b>Student Name:</b></label>
+        <input type="text" id="studentName" placeholder="Enter your full name" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <label><b>Student ID:</b></label>
+        <input type="text" id="studentId" placeholder="Enter student ID" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+    
+    <p class="description">Select a persona to interview for your Lean Canvas data collection.</p>
+    
+    <label for="role"><b>Target Interviewee:</b></label><br>
+    <select id="role">
+        <option value="somchai_retailer">Mr. Somchai</option>
+        <option value="vina_shipper">Ms. Vina</option>
+        <option value="lisa_startup">Lisa</option>
+        <option value="bruno_driver">Bruno</option>
+        <option value="marbel_forwarder">Marbel</option>
+        <option value="ed_procurement">Ed</option>
+        <option value="billie_seller">Billie</option>
+    </select>
+    
+    <div id="chat-box">
+        <div class="message"><span class="persona-msg">System:</span> Please enter your info, select a persona and start your interview.</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Type your interview question here...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        const name = document.getElementById('studentName').value;
+        const id = document.getElementById('studentId').value;
+        const input = document.getElementById('userInput');
+        const role = document.getElementById('role').value;
+        const chatBox = document.getElementById('chat-box'); // ประกาศตัวแปร chatBox
+
+        if (!name || !id) {
+            alert("Please enter your Name and Student ID first!");
+            return;
+        }
+        if (!input.value.trim()) return;
+
+        // Display Student Message
+        chatBox.innerHTML += `<div class="message"><span class="student-msg">Student:</span> ${input.value}</div>`;
+        
+        const currentMessage = input.value;
+        input.value = 'Thinking...';
+        input.disabled = true;
+
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    message: currentMessage, // ใช้ค่าที่เก็บไว้
+                    role: role,
+                    studentName: name,
+                    studentId: id
+                }) // ปิดปีกกาให้ถูกต้อง
+            });
+
+            const data = await response.json();
+            
+            // Display Persona Message
+            chatBox.innerHTML += `<div class="message"><span class="persona-msg">Persona:</span> ${data.text}</div>`;
+        } catch (error) {
+            chatBox.innerHTML += `<div class="message" style="color:red;">Error: Could not connect to the persona.</div>`;
+        }
+
+        input.value = '';
+        input.disabled = false;
+        input.focus();
+        
+        // Scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    document.getElementById('userInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+</html>
