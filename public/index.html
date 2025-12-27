@@ -121,9 +121,9 @@
         </div>
     </div>
 
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Type your question... / พิมพ์คำถามที่นี่...">
-        <button onclick="sendMessage()">Send / ส่ง</button>
+    <div class="input-area" style="flex-direction: column;"> <textarea id="userInput" placeholder="Type your interview question in English... / พิมพ์คำถามสัมภาษณ์เป็นภาษาอังกฤษที่นี่..." 
+              style="width: 100%; height: 100px; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; font-family: inherit; resize: vertical;"></textarea>
+    <button onclick="sendMessage()" style="align-self: flex-end; margin-top: 10px; width: 150px;">Send / ส่ง</button>
     </div>
 </div>
 
@@ -175,8 +175,10 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    document.getElementById('userInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
+    // เปลี่ยนจาก 'keypress' เป็น 'keydown' เพื่อรองรับ textarea
+    document.getElementById('userInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { // กด Enter เพื่อส่ง (แต่ถ้ากด Shift+Enter จะเป็นการขึ้นบรรทัดใหม่)
+            e.preventDefault();
             sendMessage();
         }
     });
