@@ -13,11 +13,25 @@
             margin: auto;
             line-height: 1.5;
         }
+        /* แก้ไขในส่วน <style> */
         .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            max-width: 1000px; /* ขยายหน้าจอให้กว้างขึ้น */
+            margin: auto;
+        }
+
+        .input-area { 
+            display: flex; 
+            gap: 15px; /* เพิ่มระยะห่างระหว่างช่องพิมพ์กับปุ่ม */
+        }
+
+        input[id="userInput"] { 
+            flex: 9; /* ให้ช่องพิมพ์ใช้พื้นที่ 9 ส่วน */
+            padding: 15px; /* เพิ่มความหนาให้พิมพ์ง่ายขึ้น */
+        }
+
+        button { 
+            flex: 1; /* ให้ปุ่มใช้พื้นที่แค่ 1 ส่วน */
+            min-width: 100px; /* กำหนดความกว้างขั้นต่ำของปุ่ม */
         }
         h2 { color: #004494; margin-top: 0; }
         h3 { color: #2c3e50; font-size: 1.1em; margin-bottom: 20px; }
