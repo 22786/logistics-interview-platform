@@ -8,7 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- CSV Setup ---
 const logFilePath = 'logs.csv';
 if (!fs.existsSync(logFilePath)) {
     const header = "Timestamp,Student_ID,Student_Name,Persona,Question,AI_Response\n";
@@ -76,89 +75,55 @@ const personas = {
 
 // --- Chat Route (Updated: Require API Key) ---
 app.post('/chat', async (req, res) => {
-    // 1. รับค่า apiKey เพิ่มเข้ามาจาก req.body
     const { message, role, studentName, studentId, apiKey } = req.body;
-    console.log(`Received Role: ${role} | Student: ${studentName} | Has Custom Key: ${!!apiKey}`);
-
+    
     try {
         const systemInstruction = personas[role] || personas["somchai_retailer"];
 
-        // 2. ตรวจสอบ Key: ต้องมี และไม่เป็นค่าว่าง
         if (!apiKey || apiKey.trim() === "") {
-            throw new Error("API Key is required. Please enter your Groq API Key to start the chat.");
+            return res.status(400).json({ text: "⚠️ API Key is required. Please enter your Groq API Key." });
         }
 
-        const targetApiKey = apiKey.trim();
-
-        // 3. เรียกใช้ Groq API ด้วย Key ของนักศึกษา
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${targetApiKey}`,
+                "Authorization": `Bearer ${apiKey.trim()}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
-                    { 
-                        role: "system", 
-                        content: `${systemInstruction}\n\nIMPORTANT: You are roleplaying. Stick to the character profile. If the user speaks Thai, strictly refuse and ask for English.` 
-                    },
-                    { 
-                        role: "user", 
-                        content: `Student Name: ${studentName} (ID: ${studentId})\nQuestion: ${message}` 
-                    }
+                    { role: "system", content: `${systemInstruction}\n\nIMPORTANT: Speak English only.` },
+                    { role: "user", content: `Student: ${studentName} (${studentId})\nQuestion: ${message}` }
                 ],
-                temperature: 0.8,
-                max_tokens: 500
+                temperature: 0.8
             })
         });
 
         const data = await response.json();
 
-        // 4. ตรวจสอบ Error จาก Groq (เช่น Key ผิด หรือ Token หมด)
-        if (!data.choices || data.choices.length === 0) {
-            const errorMsg = data.error ? data.error.message : "Invalid response from Groq";
-            // ถ้า Error เกี่ยวกับ Auth ให้แจ้งชัดเจน
-            if(data.error && data.error.code === 'invalid_api_key') {
-                 throw new Error("Invalid API Key. Please check your key again.");
-            }
-            throw new Error(errorMsg);
+        if (data.error) {
+            throw new Error(data.error.message || "Groq API Error");
         }
 
         const aiText = data.choices[0].message.content;
 
-        // 5. บันทึก Log CSV
+        // บันทึก Log
         const clean = (text) => `"${(text || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"`;
-        const logEntry = [
-            clean(new Date().toLocaleString()),
-            clean(studentId),
-            clean(studentName),
-            clean(role),
-            clean(message),
-            clean(aiText)
-        ].join(",") + "\n";
-
-        fs.appendFile(logFilePath, logEntry, (err) => {
-            if (err) console.log("CSV Logging error:", err);
-        });
+        const logEntry = [clean(new Date().toLocaleString()), clean(studentId), clean(studentName), clean(role), clean(message), clean(aiText)].join(",") + "\n";
+        fs.appendFileSync(logFilePath, logEntry);
 
         res.json({ text: aiText });
 
     } catch (error) {
-        console.error("Chat Error:", error.message);
-        // ส่ง Status 400 (Bad Request) หรือ 401 (Unauthorized) พร้อมข้อความ
-        res.status(400).json({ text: `⚠️ System Error: ${error.message}` });
+        res.status(500).json({ text: `⚠️ Error: ${error.message}` });
     }
 });
 
 app.get('/admin/download-logs', (req, res) => {
-    if (fs.existsSync(logFilePath)) {
-        res.download(logFilePath, 'student_logs_report.csv');
-    } else {
-        res.status(404).send("No log file found yet.");
-    }
+    if (fs.existsSync(logFilePath)) res.download(logFilePath);
+    else res.status(404).send("No log file found.");
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server v2 running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
