@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const fetch = require('node-fetch'); // ใช้ fetch สำหรับเรียก Groq API
+const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
@@ -8,14 +8,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- เตรียมไฟล์ CSV ---
+// --- CSV Setup ---
 const logFilePath = 'logs.csv';
 if (!fs.existsSync(logFilePath)) {
     const header = "Timestamp,Student_ID,Student_Name,Persona,Question,AI_Response\n";
     fs.writeFileSync(logFilePath, header, 'utf8');
 }
 
-// --- รายละเอียดตัวละคร (Medium Mode) ---
+// --- Personas Setup (คงเดิม) ---
 const personas = {
     "somchai_retailer": `### ROLE: Mr. Somchai (Owner of Somchai Fresh Fruit)
     - COMPANY PROFILE: Premium fruit distributor for malls. Family business (30 years). Volume 50 tons/mo.
@@ -38,7 +38,7 @@ const personas = {
     - PERSONALITY: Tech-savvy, impatient, uses startup jargon (API, Scalability).
     - SURFACE PROBLEM: "My app interface is perfect, but the GPS tracking data is garbage/missing."
     - HIDDEN TRUTH (ROOT CAUSE): Traditional trucking companies refuse to connect their GPS API to her system because they fear she will steal their direct customers.
-    - INTERACTION GUIDE: Be frustrated. If asked "Why is the data missing?", reveal the trust issue/conflict with trucking companies.
+    - INTERACTION GUIDE: Be frustrated. If asked "Why is the data missing?", reveal the trust issue with trucking companies.
     - RULE: Speak English only. Refuse Thai.`,
 
     "bruno_driver": `### ROLE: Bruno (Driver at FastWheels Logistics)
@@ -74,26 +74,35 @@ const personas = {
     - RULE: Speak English only. Refuse Thai.`
 };
 
+// --- Chat Route (Updated: Require API Key) ---
 app.post('/chat', async (req, res) => {
-    const { message, role, studentName, studentId } = req.body;
-    console.log(`Received Role: ${role} | Student: ${studentName}`);
+    // 1. รับค่า apiKey เพิ่มเข้ามาจาก req.body
+    const { message, role, studentName, studentId, apiKey } = req.body;
+    console.log(`Received Role: ${role} | Student: ${studentName} | Has Custom Key: ${!!apiKey}`);
 
     try {
         const systemInstruction = personas[role] || personas["somchai_retailer"];
 
-        // --- เรียกใช้ Groq Cloud API ---
+        // 2. ตรวจสอบ Key: ต้องมี และไม่เป็นค่าว่าง
+        if (!apiKey || apiKey.trim() === "") {
+            throw new Error("API Key is required. Please enter your Groq API Key to start the chat.");
+        }
+
+        const targetApiKey = apiKey.trim();
+
+        // 3. เรียกใช้ Groq API ด้วย Key ของนักศึกษา
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                "Authorization": `Bearer ${targetApiKey}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.3-70b-versatile", // รุ่นประสิทธิภาพสูงและ RPM สูง
+                model: "llama-3.3-70b-versatile",
                 messages: [
                     { 
                         role: "system", 
-                        content: `${systemInstruction}\n\nNote: You are talking to a student. Be in character 100%. If they use Thai, strictly refuse and ask for English.` 
+                        content: `${systemInstruction}\n\nIMPORTANT: You are roleplaying. Stick to the character profile. If the user speaks Thai, strictly refuse and ask for English.` 
                     },
                     { 
                         role: "user", 
@@ -107,13 +116,19 @@ app.post('/chat', async (req, res) => {
 
         const data = await response.json();
 
+        // 4. ตรวจสอบ Error จาก Groq (เช่น Key ผิด หรือ Token หมด)
         if (!data.choices || data.choices.length === 0) {
-            throw new Error(data.error ? data.error.message : "Invalid response from Groq");
+            const errorMsg = data.error ? data.error.message : "Invalid response from Groq";
+            // ถ้า Error เกี่ยวกับ Auth ให้แจ้งชัดเจน
+            if(data.error && data.error.code === 'invalid_api_key') {
+                 throw new Error("Invalid API Key. Please check your key again.");
+            }
+            throw new Error(errorMsg);
         }
 
         const aiText = data.choices[0].message.content;
 
-        // --- บันทึก Log CSV ---
+        // 5. บันทึก Log CSV
         const clean = (text) => `"${(text || "").toString().replace(/"/g, '""').replace(/\n/g, ' ')}"`;
         const logEntry = [
             clean(new Date().toLocaleString()),
@@ -131,11 +146,19 @@ app.post('/chat', async (req, res) => {
         res.json({ text: aiText });
 
     } catch (error) {
-        console.error("AI Error:", error);
-        // ส่งข้อความเดิมที่อาจารย์ตั้งไว้
-        res.status(500).json({ text: "Persona is unavailable. Please try again." });
+        console.error("Chat Error:", error.message);
+        // ส่ง Status 400 (Bad Request) หรือ 401 (Unauthorized) พร้อมข้อความ
+        res.status(400).json({ text: `⚠️ System Error: ${error.message}` });
+    }
+});
+
+app.get('/admin/download-logs', (req, res) => {
+    if (fs.existsSync(logFilePath)) {
+        res.download(logFilePath, 'student_logs_report.csv');
+    } else {
+        res.status(404).send("No log file found yet.");
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server v2 running on port ${PORT}`));

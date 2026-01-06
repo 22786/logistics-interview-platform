@@ -128,6 +128,14 @@
         <option value="billie_seller">Billie (E-commerce)</option>
     </select>
     
+<div class="form-group" style="margin-top: 15px; padding: 15px; background-color: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9;">
+    <label for="apiKeyInput" style="font-weight: bold; color: #0d47a1;">🔑 Your Groq API Key (Required):</label>
+    <input type="password" id="apiKeyInput" class="form-control" placeholder="gsk_xxxxxxxxxxxxxxxx" required style="width: 100%; padding: 8px; margin-top: 5px;">
+    <small style="display: block; margin-top: 5px; color: #555;">
+        *ต้องใส่ Key ของตัวเองเท่านั้น (สมัครฟรีที่ <a href="https://console.groq.com/keys" target="_blank">Groq Console</a>)
+    </small>
+</div>
+
     <div id="chat-box">
         <div class="message"><span class="persona-msg">System:</span> 
             Please enter your info and start your interview. / กรุณากรอกข้อมูลและเริ่มการสัมภาษณ์
@@ -142,51 +150,56 @@
 
 <script>
     async function sendMessage() {
-        const name = document.getElementById('studentName').value;
-        const id = document.getElementById('studentId').value;
-        const input = document.getElementById('userInput');
-        const role = document.getElementById('role').value;
-        const chatBox = document.getElementById('chat-box');
+    const inputField = document.getElementById('userInput'); // หรือ id ของช่องพิมพ์ข้อความ
+    const message = inputField.value.trim();
+    
+    // --- จุดที่ 1: ดึงค่า API Key มาจาก HTML ---
+    // (ต้องมั่นใจว่าใน HTML มี <input id="apiKeyInput"> แล้ว)
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const apiKey = apiKeyInput ? apiKeyInput.value.trim() : "";
 
-        if (!name || !id) {
-            alert("Please enter your Name and Student ID first! / กรุณากรอกชื่อและรหัสนักศึกษาก่อนเริ่ม");
-            return;
-        }
-        if (!input.value.trim()) return;
-
-        // Display Student Message
-        chatBox.innerHTML += `<div class="message"><span class="student-msg">Student:</span> ${input.value}</div>`;
-        
-        const currentMessage = input.value;
-        input.value = 'Thinking... / กำลังประมวลผล...';
-        input.disabled = true;
-
-        try {
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    message: currentMessage,
-                    role: role,
-                    studentName: name,
-                    studentId: id
-                })
-            });
-
-            const data = await response.json();
-            
-            // Display Persona Message
-            chatBox.innerHTML += `<div class="message"><span class="persona-msg">Persona:</span> ${data.text}</div>`;
-        } catch (error) {
-            chatBox.innerHTML += `<div class="message" style="color:red;">Error: Could not connect to the persona. / ไม่สามารถเชื่อมต่อกับบอทได้</div>`;
-        }
-
-        input.value = '';
-        input.disabled = false;
-        input.focus();
-        
-        chatBox.scrollTop = chatBox.scrollHeight;
+    // --- จุดที่ 2: ตรวจสอบก่อนส่ง (Client-side Validation) ---
+    if (!apiKey) {
+        alert("⚠️ กรุณากรอก Groq API Key ก่อนเริ่มใช้งานครับ");
+        if(apiKeyInput) apiKeyInput.focus(); // เด้งไปที่ช่องกรอก Key อัตโนมัติ
+        return; // หยุดทำงาน ไม่ส่งข้อมูลไป Server
     }
+
+    if (!message) return;
+
+    // แสดงข้อความฝั่งนักศึกษาบนหน้าจอทันที (UI Logic เดิม)
+    appendMessage('You', message);
+    inputField.value = '';
+
+    try {
+        // --- จุดที่ 3: ส่งข้อมูลไปยัง Server ---
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                role: document.getElementById('personaSelect').value,
+                studentName: document.getElementById('studentName').value,
+                studentId: document.getElementById('studentId').value,
+                apiKey: apiKey  // <--- 🔥 สำคัญมาก: ส่ง Key ไปที่นี่
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // กรณีคุยสำเร็จ
+            appendMessage('AI', data.text); 
+        } else {
+            // กรณีเกิด Error (เช่น Key ผิด) ให้แสดงข้อความแจ้งเตือนสีแดง
+            appendMessage('System', `❌ Error: ${data.text}`);
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        appendMessage('System', '❌ Connection Error: ไม่สามารถติดต่อ Server ได้');
+    }
+}
 
     // เปลี่ยนจาก 'keypress' เป็น 'keydown' เพื่อรองรับ textarea
     document.getElementById('userInput').addEventListener('keydown', function (e) {
