@@ -61,17 +61,14 @@
 </div>
 
 <script>
-    // --- ฟังก์ชันแสดงข้อความบนหน้าจอ (ที่หายไป) ---
-    function appendMessage(sender, text) {
+    // 1. ปรับฟังก์ชันแสดงข้อความให้ยืดหยุ่นขึ้น
+    function appendMessage(senderName, text, tagClass) {
         const chatBox = document.getElementById('chat-box');
         const div = document.createElement('div');
         div.className = 'msg-line';
         
-        let tagClass = 'system-tag';
-        if (sender === 'You') tagClass = 'student-tag';
-        if (sender === 'AI') tagClass = 'persona-tag';
-
-        div.innerHTML = `<span class="${tagClass}">${sender}:</span> ${text}`;
+        // ใช้ tagClass ที่ส่งมา (student-tag หรือ persona-tag)
+        div.innerHTML = `<span class="${tagClass}">${senderName}:</span> ${text}`;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -80,43 +77,60 @@
         const inputField = document.getElementById('userInput');
         const message = inputField.value.trim();
         const apiKey = document.getElementById('apiKeyInput').value.trim();
-        const studentName = document.getElementById('studentName').value.trim();
+        
+        // ดึงชื่อนักศึกษา (ถ้าไม่กรอกให้ใช้คำว่า Student)
+        const studentName = document.getElementById('studentName').value.trim() || "Student";
         const studentId = document.getElementById('studentId').value.trim();
-        const role = document.getElementById('role').value; // แก้ไข ID ให้ตรงกัน
+        
+        // ดึงชื่อ Persona จากตัวเลือกที่เลือกอยู่ (Text ใน <option>)
+        const roleSelect = document.getElementById('role');
+        const personaDisplayName = roleSelect.options[roleSelect.selectedIndex].text;
+        const roleValue = roleSelect.value;
 
         if (!apiKey) { alert("Please enter API Key!"); return; }
         if (!studentName || !studentId) { alert("Please enter your Name and ID!"); return; }
         if (!message) return;
 
-        appendMessage('You', message);
+        // --- แสดงชื่อนักศึกษาแทนคำว่า 'You' ---
+        appendMessage(studentName, message, 'student-tag');
         inputField.value = '';
         
-        // แสดงสถานะกำลังพิมพ์
         const loadingDiv = document.createElement('div');
         loadingDiv.id = 'loading';
-        loadingDiv.innerHTML = '<i>Thinking...</i>';
+        loadingDiv.innerHTML = `<i>${personaDisplayName} is thinking...</i>`;
         document.getElementById('chat-box').appendChild(loadingDiv);
 
         try {
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, role, studentName, studentId, apiKey })
+                body: JSON.stringify({ 
+                    message, 
+                    role: roleValue, 
+                    studentName, 
+                    studentId, 
+                    apiKey 
+                })
             });
 
             const data = await response.json();
-            document.getElementById('loading').remove();
+            if(document.getElementById('loading')) document.getElementById('loading').remove();
 
             if (response.ok) {
-                appendMessage('AI', data.text);
+                // --- แสดงชื่อตัวละครแทนคำว่า 'AI' ---
+                appendMessage(personaDisplayName, data.text, 'persona-tag');
             } else {
-                appendMessage('System', data.text);
+                appendMessage('System', data.text, 'system-tag');
             }
         } catch (error) {
             if(document.getElementById('loading')) document.getElementById('loading').remove();
-            appendMessage('System', '❌ Connection Error.');
+            appendMessage('System', '❌ Connection Error.', 'system-tag');
         }
     }
+
+    
+
+
 
     // รองรับการกด Enter
     document.getElementById('userInput').addEventListener('keydown', (e) => {
