@@ -8,7 +8,15 @@
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f7f6; max-width: 900px; margin: auto; }
         .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h2 { color: #004494; text-align: center; }
-        .instruction-box { background-color: #f0f7ff; border-left: 6px solid #0056b3; padding: 15px; margin-bottom: 20px; font-size: 0.9em; }
+        .instruction-box { 
+            background-color: #f0f7ff; 
+            border-left: 6px solid #0056b3; 
+            padding: 20px; /* เพิ่ม padding */
+            margin-bottom: 25px; 
+            font-size: 0.95em; /* ปรับขนาดฟอนต์ให้ชัดขึ้น */
+            line-height: 1.5; /* เพิ่มระยะห่างระหว่างบรรทัด */
+        }        
+        textarea { width: 100%; height: 70px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 10px; font-size: 14px; resize: vertical; }                    .student-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .student-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         #chat-box { border: 1px solid #eee; height: 350px; overflow-y: auto; padding: 15px; margin: 20px 0; background: #fafafa; border-radius: 8px; }
@@ -26,16 +34,38 @@
     <h2>Logistics Workshop: Customer Discovery</h2>
     
     <div class="instruction-box">
-        <h4 style="margin-top: 0; color: #0056b3;">📌 Instructions / คำแนะนำในการทำเวิร์กชอป</h4>
+        <h4 style="margin-top: 0; color: #0056b3; border-bottom: 1px solid #b3d7ff; padding-bottom: 8px;">
+            📌 Workshop Instructions / คำแนะนำในการทำเวิร์กชอป
+        </h4>
         
-        <p><b>1. Empathy First / เข้าใจลูกค้าก่อน:</b> 
-        Do not pitch your solution yet. Listen to their pain. / อย่าเพิ่งเสนอทางแก้ปัญหา ให้ตั้งใจฟังความเจ็บปวดของลูกค้าก่อน</p>
+        <p>
+            <b>1. Empathy First / เน้นความเข้าใจ:</b><br>
+            <span style="color: #444;">Focus on understanding the persona's daily pain points. Do not pitch your solution yet.</span><br>
+            <i>เน้นทำความเข้าใจปัญหาที่เขาเจอในแต่ละวัน อย่าเพิ่งรีบเสนอขายไอเดียหรือทางแก้ปัญหาของคุณ</i>
+        </p>
         
-        <p><b>2. The "5 Whys" Technique / เทคนิคการถาม "ทำไม" 5 ครั้ง:</b> 
-        Ask "Why" to dig deep into the root cause of their problems. / ถามว่า "ทำไม" เพื่อขุดหาต้นตอที่แท้จริงของปัญหา</p>
+        <p>
+            <b>2. Ask "Why" (5 Whys Technique) / ถาม "ทำไม" เพื่อหาต้นตอ:</b><br>
+            <span style="color: #444;">Dig deep into the root cause of their problems by asking follow-up questions.</span><br>
+            <i>ใช้การถามเจาะลึกเพื่อหาต้นตอของปัญหา อย่าหยุดเพียงแค่คำตอบแรกที่ได้รับ</i>
+        </p>
         
-        <p><b>3. Lean Canvas Goal / เป้าหมายเพื่อ Lean Canvas:</b> 
-        Gather data to fill in the <i>Problem, Customer Segment,</i> and <i>Existing Alternatives</i> blocks. / เก็บข้อมูลเพื่อนำไปกรอกในส่วน Problem, Customer Segment และ Existing Alternatives</p>
+        <p>
+            <b>3. Identify Existing Alternatives / สำรวจวิธีแก้ปัญหาในปัจจุบัน:</b><br>
+            <span style="color: #444;">Ask how they currently solve these problems and what tools they use.</span><br>
+            <i>ลองถามว่าปัจจุบันเขาแก้ปัญหานั้นอย่างไร หรือใช้เครื่องมืออะไรอยู่ เพื่อหาช่องว่างทางการตลาด</i>
+        </p>
+
+        <p>
+            <b>4. Practice English Communication / ฝึกการสื่อสารภาษาอังกฤษ:</b><br>
+            <span style="color: #444;">Conduct the interview in English to simulate a global business environment.</span><br>
+            <i>ทำการสัมภาษณ์เป็นภาษาอังกฤษเพื่อฝึกทักษะการสื่อสารในบริบทธุรกิจระดับสากล</i>
+        </p>
+
+        <div style="margin-top: 10px; font-style: italic; color: #d32f2f; font-size: 0.85em;">
+            *Goal: Collect data for your Lean Canvas (Problem, Customer Segment, and Alternatives).<br>
+            *เป้าหมาย: เพื่อเก็บข้อมูลไปกรอกใน Lean Canvas (ส่วน Problem, Customer Segment และ Existing Alternatives)
+        </div>
     </div>
 
     <div class="student-info-grid">
