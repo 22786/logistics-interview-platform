@@ -16,7 +16,7 @@
             font-size: 0.95em; /* ปรับขนาดฟอนต์ให้ชัดขึ้น */
             line-height: 1.5; /* เพิ่มระยะห่างระหว่างบรรทัด */
         }        
-        textarea { width: 100%; height: 70px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 10px; font-size: 14px; resize: vertical; }                    .student-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        textarea { width: 100%; height: 70px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 10px; font-size: 14px; resize: vertical; }
         .student-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         #chat-box { border: 1px solid #eee; height: 350px; overflow-y: auto; padding: 15px; margin: 20px 0; background: #fafafa; border-radius: 8px; }
@@ -87,7 +87,18 @@
     <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; margin-bottom: 15px;">
         <label><b>🔑 Groq API Key:</b></label>
         <input type="password" id="apiKeyInput" placeholder="gsk_xxxxxxxxxxxx">
-    </div>
+
+        <div style="margin-top:10px; display:flex; align-items:center; gap:10px; width:100%; justify-content:flex-start; text-align:left; font-size:0.9em; color:#444;">
+  <input type="checkbox" id="consentChk" style="margin:0; width:auto;">
+  <label for="consentChk" style="margin:0; cursor:pointer; line-height:1.3; flex:1;">
+    I understand this chat may be logged for learning/assessment purposes.
+  </label>
+</div>
+
+
+   </div>
+
+
 
     <div id="chat-box">
         <div class="msg-line"><span class="system-tag">System:</span> Welcome! Please enter your details and API Key to start the interview.</div>
@@ -101,73 +112,83 @@
     // 1. ปรับฟังก์ชันแสดงข้อความให้ยืดหยุ่นขึ้น
     function appendMessage(senderName, text, tagClass) {
         const chatBox = document.getElementById('chat-box');
+
         const div = document.createElement('div');
         div.className = 'msg-line';
-        
-        // ใช้ tagClass ที่ส่งมา (student-tag หรือ persona-tag)
-        div.innerHTML = `<span class="${tagClass}">${senderName}:</span> ${text}`;
+
+        const span = document.createElement('span');
+        span.className = tagClass;
+        span.textContent = `${senderName}:`;
+
+        const msgText = document.createTextNode(` ${text}`);
+
+        div.appendChild(span);
+        div.appendChild(msgText);
+
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    async function sendMessage() {
-        const inputField = document.getElementById('userInput');
-        const message = inputField.value.trim();
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        
-        // ดึงชื่อนักศึกษา (ถ้าไม่กรอกให้ใช้คำว่า Student)
-        const studentName = document.getElementById('studentName').value.trim() || "Student";
-        const studentId = document.getElementById('studentId').value.trim();
-        
-        // ดึงชื่อ Persona จากตัวเลือกที่เลือกอยู่ (Text ใน <option>)
-        const roleSelect = document.getElementById('role');
-        const personaDisplayName = roleSelect.options[roleSelect.selectedIndex].text;
-        const roleValue = roleSelect.value;
 
-        if (!apiKey) { alert("Please enter API Key!"); return; }
-        if (!studentName || !studentId) { alert("Please enter your Name and ID!"); return; }
-        if (!message) return;
 
-        // --- แสดงชื่อนักศึกษาแทนคำว่า 'You' ---
-        appendMessage(studentName, message, 'student-tag');
-        inputField.value = '';
-        
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'loading';
-        loadingDiv.innerHTML = `<i>${personaDisplayName} is thinking...</i>`;
-        document.getElementById('chat-box').appendChild(loadingDiv);
 
-        try {
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message, 
-                    role: roleValue, 
-                    studentName, 
-                    studentId, 
-                    apiKey 
-                })
-            });
+async function sendMessage() {
+  const inputField = document.getElementById('userInput');
+  const message = inputField.value.trim();
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
 
-            const data = await response.json();
-            if(document.getElementById('loading')) document.getElementById('loading').remove();
+  const studentName = document.getElementById('studentName').value.trim() || "Student";
+  const studentId = document.getElementById('studentId').value.trim();
 
-            if (response.ok) {
-                // --- แสดงชื่อตัวละครแทนคำว่า 'AI' ---
-                appendMessage(personaDisplayName, data.text, 'persona-tag');
-            } else {
-                appendMessage('System', data.text, 'system-tag');
-            }
-        } catch (error) {
-            if(document.getElementById('loading')) document.getElementById('loading').remove();
-            appendMessage('System', '❌ Connection Error.', 'system-tag');
-        }
+  const roleSelect = document.getElementById('role');
+  const personaDisplayName = roleSelect.options[roleSelect.selectedIndex].text;
+  const roleValue = roleSelect.value;
+
+  if (!apiKey) { alert("Please enter API Key!"); return; }
+  if (!studentName || !studentId) { alert("Please enter your Name and ID!"); return; }
+
+  const consent = document.getElementById('consentChk').checked;
+  if (!consent) { alert("Please confirm consent before starting."); return; }
+
+  if (!message) return;
+
+  appendMessage(studentName, message, 'student-tag');
+  inputField.value = '';
+
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loading';
+  loadingDiv.textContent = `${personaDisplayName} is thinking...`;
+  document.getElementById('chat-box').appendChild(loadingDiv);
+
+  try {
+    const response = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        role: roleValue,
+        studentName,
+        studentId,
+        apiKey
+      })
+    });
+
+    const data = await response.json();
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+
+    if (response.ok) {
+      appendMessage(personaDisplayName, data.text, 'persona-tag');
+    } else {
+      appendMessage('System', data.text, 'system-tag');
     }
-
-    
-
-
+  } catch (error) {
+    const loading = document.getElementById('loading');
+    if (loading) loading.remove();
+    appendMessage('System', '❌ Connection Error.', 'system-tag');
+  }
+}
+ 
 
     // รองรับการกด Enter
     document.getElementById('userInput').addEventListener('keydown', (e) => {
