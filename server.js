@@ -35,7 +35,11 @@ app.post('/chat', async (req, res) => {
     const { message, role, studentName, studentId, apiKey } = req.body;
     
     try {
-        const systemInstruction = personas[role] || personas["trump_import"];
+        const systemInstruction = personas[role];
+if (!systemInstruction) {
+  return res.status(400).json({ text: `⚠️ Unknown persona role: ${role}` });
+}
+
 
         if (!apiKey || apiKey.trim() === "") {
             return res.status(400).json({ text: "⚠️ API Key is required. Please enter your Groq API Key." });
