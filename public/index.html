@@ -76,12 +76,15 @@
     <div style="margin-bottom: 15px;">
         <label><b>Target Interviewee:</b></label>
         <select id="role" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="trump_import">Trump - Import Issues (Easy)</option>
-            <option value="musk_3pl">Musk - Truck Maintenance (Easy)</option>
-    
-            <option value="peggy_coord">Peggy - Transport Coord (Medium)</option>
-            <option value="steve_maersk">Steve - Shipping CS (Medium)</option>
-        </select>
+  <option value="somchai_retailer">Mr. Somchai (Traditional Retail)</option>
+  <option value="vina_shipper">Ms. Vina (Warehouse Manager)</option>
+  <option value="lisa_startup">Lisa (Tech Startup Founder)</option>
+  <option value="bruno_driver">Bruno (Truck Driver)</option>
+  <option value="marbel_forwarder">Marbel (Customs Broker)</option>
+  <option value="ed_procurement">Ed (Factory Procurement - JIT)</option>
+  <option value="billie_seller">Billie (E-commerce Seller)</option>
+</select>
+
     </div>
 
     <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; margin-bottom: 15px;">
@@ -109,94 +112,108 @@
 </div>
 
 <script>
-    // 1. ปรับฟังก์ชันแสดงข้อความให้ยืดหยุ่นขึ้น
-    function appendMessage(senderName, text, tagClass) {
-        const chatBox = document.getElementById('chat-box');
+  // แสดงข้อความแบบปลอดภัย (กัน XSS)
+  function appendMessage(senderName, text, tagClass) {
+    const chatBox = document.getElementById('chat-box');
 
-        const div = document.createElement('div');
-        div.className = 'msg-line';
+    const div = document.createElement('div');
+    div.className = 'msg-line';
 
-        const span = document.createElement('span');
-        span.className = tagClass;
-        span.textContent = `${senderName}:`;
+    const span = document.createElement('span');
+    span.className = tagClass;
+    span.textContent = `${senderName}:`;
 
-        const msgText = document.createTextNode(` ${text}`);
+    const msgText = document.createTextNode(` ${text}`);
 
-        div.appendChild(span);
-        div.appendChild(msgText);
+    div.appendChild(span);
+    div.appendChild(msgText);
 
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-
-
-
-async function sendMessage() {
-  const inputField = document.getElementById('userInput');
-  const message = inputField.value.trim();
-  const apiKey = document.getElementById('apiKeyInput').value.trim();
-
-  const studentName = document.getElementById('studentName').value.trim() || "Student";
-  const studentId = document.getElementById('studentId').value.trim();
-
-  const roleSelect = document.getElementById('role');
-  const personaDisplayName = roleSelect.options[roleSelect.selectedIndex].text;
-  const roleValue = roleSelect.value;
-
-  if (!apiKey) { alert("Please enter API Key!"); return; }
-  if (!studentName || !studentId) { alert("Please enter your Name and ID!"); return; }
-
-  const consent = document.getElementById('consentChk').checked;
-  if (!consent) { alert("Please confirm consent before starting."); return; }
-
-  if (!message) return;
-
-  appendMessage(studentName, message, 'student-tag');
-  inputField.value = '';
-
-  const loadingDiv = document.createElement('div');
-  loadingDiv.id = 'loading';
-  loadingDiv.textContent = `${personaDisplayName} is thinking...`;
-  document.getElementById('chat-box').appendChild(loadingDiv);
-
-  try {
-    const response = await fetch('/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        role: roleValue,
-        studentName,
-        studentId,
-        apiKey
-      })
-    });
-
-    const data = await response.json();
-    const loading = document.getElementById('loading');
-    if (loading) loading.remove();
-
-    if (response.ok) {
-      appendMessage(personaDisplayName, data.text, 'persona-tag');
-    } else {
-      appendMessage('System', data.text, 'system-tag');
-    }
-  } catch (error) {
-    const loading = document.getElementById('loading');
-    if (loading) loading.remove();
-    appendMessage('System', '❌ Connection Error.', 'system-tag');
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
-}
- 
 
-    // รองรับการกด Enter
-    document.getElementById('userInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+  async function sendMessage() {
+    const inputField = document.getElementById('userInput');
+    const message = inputField.value.trim();
+    const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+    const studentName = document.getElementById('studentName').value.trim() || "Student";
+    const studentId = document.getElementById('studentId').value.trim();
+
+    const roleSelect = document.getElementById('role');
+    const personaDisplayName = roleSelect.options[roleSelect.selectedIndex].text;
+    const roleValue = roleSelect.value;
+
+    // Validations
+    if (!apiKey) { alert("Please enter API Key!"); return; }
+    if (!studentName || !studentId) { alert("Please enter your Name and ID!"); return; }
+
+    const consent = document.getElementById('consentChk').checked;
+    if (!consent) { alert("Please confirm consent before starting."); return; }
+
+    if (!message) return;
+
+    // กันกดรัว: ปิดปุ่มระหว่างรอคำตอบ
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    const oldBtnText = btn.textContent;
+    btn.textContent = "Sending...";
+
+    // แสดงข้อความนักศึกษา
+    appendMessage(studentName, message, 'student-tag');
+    inputField.value = '';
+
+    // แสดงสถานะกำลังคิด
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading';
+    loadingDiv.className = 'msg-line';
+    loadingDiv.innerHTML = `<span class="system-tag">System:</span> <i>${personaDisplayName} is thinking...</i>`;
+    document.getElementById('chat-box').appendChild(loadingDiv);
+
+    try {
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          role: roleValue,
+          studentName,
+          studentId,
+          apiKey
+        })
+      });
+
+      const data = await response.json();
+
+      const loading = document.getElementById('loading');
+      if (loading) loading.remove();
+
+      if (response.ok) {
+        appendMessage(personaDisplayName, data.text, 'persona-tag');
+      } else {
+        appendMessage('System', data.text, 'system-tag');
+      }
+
+    } catch (error) {
+      const loading = document.getElementById('loading');
+      if (loading) loading.remove();
+
+      appendMessage('System', '❌ Connection Error.', 'system-tag');
+
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldBtnText || "Send / ส่ง";
+    }
+  }
+
+  // กด Enter เพื่อส่ง (Shift+Enter ขึ้นบรรทัดใหม่)
+  document.getElementById('userInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
 </script>
+
 </body>
 </html>
